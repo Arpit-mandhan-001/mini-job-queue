@@ -22,14 +22,14 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${styles[status]}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold border ${styles[status]}`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
           status === 'pending'
             ? 'bg-amber-500'
             : status === 'running'
-            ? 'bg-brand-accent animate-pulse'
+            ? 'bg-brand-accent'
             : status === 'completed'
             ? 'bg-emerald-500'
             : 'bg-red-500'
