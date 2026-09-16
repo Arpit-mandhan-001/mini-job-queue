@@ -12,19 +12,30 @@ export class Job {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   title: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+  })
   type: string;
 
   @Column({
     type: 'enum',
     enum: JobStatus,
     default: JobStatus.PENDING,
+    nullable: false,
   })
   status: JobStatus;
 
-  @CreateDateColumn()
+  @CreateDateColumn({
+    type: 'timestamp with time zone',
+  })
   createdAt: Date;
 }
