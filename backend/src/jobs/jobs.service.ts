@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job, JobStatus } from './entities/job.entity';
@@ -14,8 +14,9 @@ export class JobsService {
 
   async create(createJobDto: CreateJobDto): Promise<Job> {
     const job = this.jobRepository.create({
-      ...createJobDto,
-      status: JobStatus.PENDING,
+      title: createJobDto.title,
+      type: createJobDto.type,
+      status: JobStatus.PENDING, // Always forced to pending
     });
     return await this.jobRepository.save(job);
   }
@@ -35,19 +36,19 @@ export class JobsService {
     const currentStatus = job.status;
     const targetStatus = updateJobStatusDto.status;
 
-    // Validate status transitions:
+    // Allowed status transitions:
     // pending -> running
     // running -> completed
     // running -> failed
-    // Completed or failed jobs cannot transition again.
+    // A completed or failed job cannot become running or change status again.
     const isValidTransition =
       (currentStatus === JobStatus.PENDING && targetStatus === JobStatus.RUNNING) ||
       (currentStatus === JobStatus.RUNNING && targetStatus === JobStatus.COMPLETED) ||
       (currentStatus === JobStatus.RUNNING && targetStatus === JobStatus.FAILED);
 
     if (!isValidTransition) {
-      throw new BadRequestException(
-        `Invalid status transition from "${currentStatus}" to "${targetStatus}"`,
+      throw new ConflictException(
+        `Invalid status transition from "${currentStatus}" to "${targetStatus}". Allowed transitions: pending -> running, running -> completed, running -> failed.`,
       );
     }
 
