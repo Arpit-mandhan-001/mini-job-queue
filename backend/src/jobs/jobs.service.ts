@@ -16,7 +16,7 @@ export class JobsService {
     const job = this.jobRepository.create({
       title: createJobDto.title,
       type: createJobDto.type,
-      status: JobStatus.PENDING, // Always forced to pending
+      status: JobStatus.PENDING, // Initial status is strictly forced to pending
     });
     return await this.jobRepository.save(job);
   }
@@ -28,32 +28,41 @@ export class JobsService {
   }
 
   async updateStatus(id: string, updateJobStatusDto: UpdateJobStatusDto): Promise<Job> {
-    const job = await this.jobRepository.findOne({ where: { id } });
-    if (!job) {
-      throw new NotFoundException(`Job with ID "${id}" not found`);
-    }
+    const { status: targetStatus } = updateJobStatusDto;
 
-    const currentStatus = job.status;
-    const targetStatus = updateJobStatusDto.status;
-
-    // Allowed status transitions:
-    // pending -> running
-    // running -> completed
-    // running -> failed
-    // A completed or failed job cannot become running or change status again.
-    const isValidTransition =
-      (currentStatus === JobStatus.PENDING && targetStatus === JobStatus.RUNNING) ||
-      (currentStatus === JobStatus.RUNNING && targetStatus === JobStatus.COMPLETED) ||
-      (currentStatus === JobStatus.RUNNING && targetStatus === JobStatus.FAILED);
-
-    if (!isValidTransition) {
+    // Define mandatory prerequisite current status for valid state machine transitions
+    let expectedCurrentStatus: JobStatus;
+    if (targetStatus === JobStatus.RUNNING) {
+      expectedCurrentStatus = JobStatus.PENDING;
+    } else if (targetStatus === JobStatus.COMPLETED || targetStatus === JobStatus.FAILED) {
+      expectedCurrentStatus = JobStatus.RUNNING;
+    } else {
+      // Transitioning to 'pending' or any other state is invalid
       throw new ConflictException(
-        `Invalid status transition from "${currentStatus}" to "${targetStatus}". Allowed transitions: pending -> running, running -> completed, running -> failed.`,
+        `Invalid target status "${targetStatus}". Jobs cannot transition to "${targetStatus}".`,
       );
     }
 
-    job.status = targetStatus;
-    return await this.jobRepository.save(job);
+    // Atomic SQL Update: UPDATE jobs SET status = :targetStatus WHERE id = :id AND status = :expectedCurrentStatus
+    const result = await this.jobRepository.update(
+      { id, status: expectedCurrentStatus },
+      { status: targetStatus },
+    );
+
+    // If 1 row was updated, the atomic transition succeeded
+    if (result.affected === 1) {
+      return await this.jobRepository.findOneByOrFail({ id });
+    }
+
+    // If 0 rows were updated, diagnose if job is missing (404) or state/concurrency conflict (409)
+    const existingJob = await this.jobRepository.findOne({ where: { id } });
+    if (!existingJob) {
+      throw new NotFoundException(`Job with ID "${id}" not found`);
+    }
+
+    throw new ConflictException(
+      `Cannot transition job from status "${existingJob.status}" to "${targetStatus}". Allowed transitions: pending -> running, running -> completed, running -> failed.`,
+    );
   }
 
   async remove(id: string): Promise<void> {
