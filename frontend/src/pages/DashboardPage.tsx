@@ -10,6 +10,7 @@ import { JobStatus } from '../types/job';
 export const DashboardPage: React.FC = () => {
   const {
     jobs,
+    totalJobsCount,
     loading,
     error,
     activeFilter,
@@ -30,19 +31,27 @@ export const DashboardPage: React.FC = () => {
       <Header onOpenCreateModal={() => setIsFormOpen(true)} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* API Error Notification */}
+        {/* Error Notification Alert Banner */}
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-md flex items-center justify-between text-red-800 text-xs font-medium">
             <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-red-600" />
+              <span className="w-2 h-2 rounded-full bg-red-600 animate-ping" />
               <span>{error}</span>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="font-bold underline hover:text-red-900"
-            >
-              Dismiss
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={refetch}
+                className="px-2.5 py-1 text-xs bg-red-600 text-white rounded font-semibold hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Retry Request
+              </button>
+              <button
+                onClick={() => setError(null)}
+                className="font-bold underline text-slate-500 hover:text-slate-800"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
 
@@ -100,21 +109,27 @@ export const DashboardPage: React.FC = () => {
             <button
               onClick={refetch}
               disabled={loading}
-              className="px-3 py-1.5 text-xs font-medium text-slate-subtle hover:text-slate-dark border border-surface-border rounded-md bg-surface-card hover:border-slate-300 transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-slate-subtle hover:text-slate-dark border border-surface-border rounded-md bg-surface-card hover:border-slate-300 transition-colors disabled:opacity-50 inline-flex items-center space-x-1"
             >
-              Refresh
+              {loading && <span className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin mr-1" />}
+              <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
           </div>
         </div>
 
-        {/* 4. Jobs Section (JobTable / JobRow / Empty State) */}
-        {loading && jobs.length === 0 ? (
-          <div className="p-12 text-center bg-surface-card rounded-lg border border-surface-border">
-            <p className="text-xs text-slate-subtle font-medium">Loading jobs...</p>
+        {/* 4. Jobs Section (Initial Loading Skeleton vs Job Table) */}
+        {loading && totalJobsCount === 0 ? (
+          <div className="bg-surface-card rounded-lg border border-surface-border p-8 space-y-4">
+            <div className="h-4 bg-slate-200 rounded w-1/4 animate-pulse" />
+            <div className="h-10 bg-slate-100 rounded animate-pulse" />
+            <div className="h-10 bg-slate-100 rounded animate-pulse" />
+            <div className="h-10 bg-slate-100 rounded animate-pulse" />
           </div>
         ) : (
           <JobTable
             jobs={jobs}
+            totalJobsCount={totalJobsCount}
+            activeFilter={activeFilter}
             onUpdateStatus={(id, status) => updateJobStatus(id, status as JobStatus)}
             onDelete={deleteJob}
           />
