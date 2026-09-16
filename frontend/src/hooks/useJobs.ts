@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Job, JobStatus, CreateJobInput, StatusCounts } from '../types/job';
-import { jobApi } from '../services/api';
+import { Job, JobStatus, CreateJobRequest, StatusCounts } from '../types/job';
+import { jobService } from '../services/jobService';
 
 export function useJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -12,10 +12,10 @@ export function useJobs() {
     try {
       setLoading(true);
       setError(null);
-      const data = await jobApi.getJobs();
+      const data = await jobService.getJobs();
       setJobs(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load jobs');
+      setError(err instanceof Error ? err.message : 'Failed to load jobs from server');
     } finally {
       setLoading(false);
     }
@@ -25,10 +25,10 @@ export function useJobs() {
     fetchJobs();
   }, [fetchJobs]);
 
-  const createJob = async (input: CreateJobInput) => {
+  const createJob = async (input: CreateJobRequest) => {
     try {
       setError(null);
-      const newJob = await jobApi.createJob(input);
+      const newJob = await jobService.createJob(input);
       setJobs((prev) => [newJob, ...prev]);
       return newJob;
     } catch (err) {
@@ -41,7 +41,7 @@ export function useJobs() {
   const updateJobStatus = async (id: string, status: JobStatus) => {
     try {
       setError(null);
-      const updatedJob = await jobApi.updateJobStatus(id, status);
+      const updatedJob = await jobService.updateJobStatus(id, status);
       setJobs((prev) => prev.map((j) => (j.id === id ? updatedJob : j)));
       return updatedJob;
     } catch (err) {
@@ -54,7 +54,7 @@ export function useJobs() {
   const deleteJob = async (id: string) => {
     try {
       setError(null);
-      await jobApi.deleteJob(id);
+      await jobService.deleteJob(id);
       setJobs((prev) => prev.filter((j) => j.id !== id));
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to delete job';
@@ -63,6 +63,7 @@ export function useJobs() {
     }
   };
 
+  // Status counts calculated across the COMPLETE jobs list from backend
   const statusCounts = useMemo<StatusCounts>(() => {
     const counts: StatusCounts = {
       all: jobs.length,
@@ -79,6 +80,7 @@ export function useJobs() {
     return counts;
   }, [jobs]);
 
+  // Filtered jobs array based on active filter
   const filteredJobs = useMemo(() => {
     if (activeFilter === 'all') return jobs;
     return jobs.filter((job) => job.status === activeFilter);

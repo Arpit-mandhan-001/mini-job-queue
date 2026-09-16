@@ -8,14 +8,18 @@ export interface Job {
   createdAt: string;
 }
 
-export interface CreateJobInput {
+export interface CreateJobRequest {
   title: string;
   type: string;
 }
 
-export interface UpdateJobStatusInput {
+export interface UpdateJobStatusRequest {
   status: JobStatus;
 }
+
+// Backward compatibility alias
+export type CreateJobInput = CreateJobRequest;
+export type UpdateJobStatusInput = UpdateJobStatusRequest;
 
 export interface StatusCounts {
   all: number;
