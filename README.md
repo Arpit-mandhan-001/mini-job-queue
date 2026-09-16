@@ -1,22 +1,79 @@
 # Mini Job Queue Dashboard
 
-A simple, clean, startup-style Mini Job Queue Dashboard built with NestJS, TypeORM, PostgreSQL, React, TypeScript, Vite, and Tailwind CSS.
+A simple full-stack Job Queue Management Dashboard built with React, NestJS, and PostgreSQL.
 
----
+The application allows users to create jobs, view jobs, filter them by status, update their status, and delete jobs.
 
-## 🛠 Tech Stack
+The main focus of the project is clean API design, validation, error handling, and safe job status transitions.
 
-- **Frontend:** React.js, TypeScript, Vite, Tailwind CSS (Custom SaaS Palette), Lucide Icons
-- **Backend:** NestJS, TypeScript, TypeORM, PostgreSQL
-- **Validation:** `class-validator`, `class-transformer`
-- **Config:** Environment-driven (`.env`) for DB connection & API base URLs
+## Features
 
----
+- Create a new job
+- View all jobs
+- Filter jobs by status
+- View job counts by status
+- Update job status
+- Delete jobs
+- Form validation
+- API error handling
+- Loading states
+- Empty states
+- Safe status transitions
+- Concurrent status update handling
+- Health check endpoint
 
-## 📁 Directory & Folder Structure
+## Tech Stack
 
-```
-Mini-job-queue/
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+
+### Backend
+
+- NestJS
+- TypeScript
+- TypeORM
+- class-validator
+
+### Database
+
+- PostgreSQL
+
+## Project Structure
+
+```text
+job-queue-dashboard/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── CreateJobModal.tsx
+│   │   │   ├── Header.tsx
+│   │   │   ├── JobCard.tsx
+│   │   │   ├── JobForm.tsx
+│   │   │   ├── JobRow.tsx
+│   │   │   ├── JobTable.tsx
+│   │   │   ├── StatusBadge.tsx
+│   │   │   ├── StatusCard.tsx
+│   │   │   └── StatusFilter.tsx
+│   │   ├── services/
+│   │   │   ├── api.ts
+│   │   │   └── jobService.ts
+│   │   ├── types/
+│   │   │   └── job.ts
+│   │   ├── hooks/
+│   │   │   └── useJobs.ts
+│   │   ├── pages/
+│   │   │   └── DashboardPage.tsx
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── index.css
+│   ├── package.json
+│   └── .env.example
+│
 ├── backend/
 │   ├── src/
 │   │   ├── jobs/
@@ -28,89 +85,48 @@ Mini-job-queue/
 │   │   │   ├── jobs.controller.ts
 │   │   │   ├── jobs.service.ts
 │   │   │   └── jobs.module.ts
+│   │   ├── health/
+│   │   │   ├── health.controller.ts
+│   │   │   └── health.module.ts
 │   │   ├── app.module.ts
 │   │   └── main.ts
-│   ├── nest-cli.json
-│   ├── tsconfig.json
 │   ├── package.json
-│   ├── .env.example
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── CreateJobModal.tsx
-│   │   │   ├── Header.tsx
-│   │   │   ├── JobCard.tsx
-│   │   │   ├── StatusBadge.tsx
-│   │   │   └── StatusCard.tsx
-│   │   ├── hooks/
-│   │   │   └── useJobs.ts
-│   │   ├── pages/
-│   │   │   └── DashboardPage.tsx
-│   │   ├── services/
-│   │   │   └── api.ts
-│   │   ├── types/
-│   │   │   └── job.ts
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── package.json
-│   ├── .env.example
-│   └── .env
+│   └── .env.example
+│
 ├── .gitignore
 └── README.md
 ```
 
-### Purpose of Key Folders
+## API Endpoints
 
-| Path | Purpose |
-| :--- | :--- |
-| `backend/src/jobs/dto/` | Contains Request Data Transfer Objects with validation annotations (`create-job.dto.ts`, `update-job-status.dto.ts`). |
-| `backend/src/jobs/entities/` | Contains the TypeORM database entity schema (`job.entity.ts`) representing the PostgreSQL `jobs` table. |
-| `backend/src/jobs/jobs.controller.ts` | Exposes REST endpoints (`POST`, `GET`, `PATCH`, `DELETE`) for job management. |
-| `backend/src/jobs/jobs.service.ts` | Contains data access logic and enforces job status transition rules (`pending` → `running` → `completed`/`failed`). |
-| `frontend/src/components/` | Modular, reusable UI components for header, metric cards, job list items, status badges, and job creation modal. |
-| `frontend/src/pages/` | Screen views (e.g., `DashboardPage.tsx`) assembling status metrics, filter controls, error alerts, and job lists. |
-| `frontend/src/services/` | Centralized API client module (`api.ts`) managing HTTP requests to the backend endpoints. |
-| `frontend/src/types/` | TypeScript type declarations (`job.ts`) for jobs, statuses, and counts. |
-| `frontend/src/hooks/` | Custom React hook (`useJobs.ts`) encapsulating state management, API synchronization, filtering, and metric calculation. |
+- `GET /health` — Application health check
+- `POST /jobs` — Create a new job (initial status `pending`)
+- `GET /jobs` — Fetch all jobs
+- `PATCH /jobs/:id/status` — Update job status (`pending` → `running` → `completed`/`failed`)
+- `DELETE /jobs/:id` — Delete a job
 
----
+## State Machine & Status Transitions
 
-## ⚡ Setup & Run Instructions
+Allowed transitions:
+- `pending` → `running`
+- `running` → `completed`
+- `running` → `failed`
 
-### 1. Prerequisites
-- Node.js (v18+)
-- PostgreSQL server running locally or via Docker
+*Note: Atomic SQL queries enforce row-level safety, returning `409 Conflict` if a concurrent request alters job state ahead of time.*
 
-### 2. Backend Setup
+## Getting Started
+
+### Backend
 ```bash
 cd backend
 npm install
-# Configure your database details in backend/.env
+# Configure PostgreSQL details in backend/.env
 npm run start:dev
 ```
-Backend will run on `http://localhost:3000`.
 
-### 3. Frontend Setup
+### Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend will run on `http://localhost:5173`.
-
----
-
-## 🔄 Allowed Job Status Transitions
-
-- `pending` → `running`
-- `running` → `completed`
-- `running` → `failed`
-
-*Note: Completed or failed jobs cannot transition back to running or pending state.*
